@@ -2,7 +2,7 @@ import { mutation, query } from './_generated/server';
 import { v } from 'convex/values';
 
 export const getHabits = query({
-  args: { userId: v.string() },
+  args: { userId: v.id('users') },
   handler: async (ctx, args) => {
     return await ctx.db
       .query('habits')
@@ -13,7 +13,7 @@ export const getHabits = query({
 
 export const createHabit = mutation({
   args: {
-    userId: v.string(),
+    userId: v.id('users'),
     title: v.string(),
     frequency: v.union(v.literal('daily'), v.literal('weekly'), v.literal('custom')),
     color: v.string(),

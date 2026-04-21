@@ -60,7 +60,7 @@ export const getTrainers = query({
 });
 
 export const getTrainerClients = query({
-  args: { trainerId: v.string() },
+  args: { trainerId: v.id('users') },
   handler: async (ctx, args) => {
     // Find all accepted bookings for this trainer
     const bookings = await ctx.db

@@ -125,20 +125,20 @@ export const getPlatformAnalytics = query({
 
 export const updateUserSettings = mutation({
   args: { 
-    userId: v.string(), 
+    userId: v.id('users'), 
     notificationsEnabled: v.optional(v.boolean()),
     autoBookEnabled: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const { userId, ...settings } = args;
-    await ctx.db.patch(userId as any, settings);
+    await ctx.db.patch(userId, settings);
   },
 });
 
 export const getUserDashboardData = query({
-  args: { userId: v.string() },
+  args: { userId: v.id('users') },
   handler: async (ctx, args) => {
-    const user = await ctx.db.get(args.userId as any);
+    const user = await ctx.db.get(args.userId);
     if (!user) return null;
 
     const bookings = await ctx.db
@@ -197,9 +197,9 @@ export const getUserDashboardData = query({
 });
 
 export const getUserHabitIntelligence = query({
-  args: { userId: v.string() },
+  args: { userId: v.id('users') },
   handler: async (ctx, args) => {
-    const user = await ctx.db.get(args.userId as any);
+    const user = await ctx.db.get(args.userId);
     if (!user) return null;
 
     const progress = await ctx.db
@@ -255,9 +255,9 @@ export const getUserHabitIntelligence = query({
 });
 
 export const getTrainerStats = query({
-  args: { trainerId: v.string() },
+  args: { trainerId: v.id('users') },
   handler: async (ctx, args) => {
-    const trainer = await ctx.db.get(args.trainerId as any);
+    const trainer = await ctx.db.get(args.trainerId);
     if (!trainer || !('rating' in trainer)) return null;
     const bookings = await ctx.db
       .query('bookings')

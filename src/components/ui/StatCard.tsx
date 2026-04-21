@@ -15,19 +15,26 @@ interface StatCardProps {
 
 export const StatCard: React.FC<StatCardProps> = ({ label, value, numeric, trend, icon, delay = 0 }) => {
   const [displayed, setDisplayed] = useState(0);
-  const hasAnimated = useRef(false);
 
   useEffect(() => {
-    if (numeric == null || hasAnimated.current) return;
-    hasAnimated.current = true;
-    let start = 0;
+    if (numeric == null) return;
+    
+    let start = displayed;
     const end = numeric;
-    const duration = 1200;
-    const step = end / (duration / 16);
+    
+    if (start === end) return;
+
+    const duration = 800;
+    const step = (end - start) / (duration / 16);
+    
     const timer = setInterval(() => {
       start += step;
-      if (start >= end) { setDisplayed(end); clearInterval(timer); }
-      else setDisplayed(Math.floor(start));
+      if (step > 0 ? start >= end : start <= end) { 
+        setDisplayed(end); 
+        clearInterval(timer); 
+      } else {
+        setDisplayed(Math.floor(start));
+      }
     }, 16);
     return () => clearInterval(timer);
   }, [numeric]);

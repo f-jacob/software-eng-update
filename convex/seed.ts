@@ -26,6 +26,11 @@ export const ensureDataIntegrity = mutation({
         });
       } else {
         uid = existing._id;
+        // Patch existing to ensure they have a streak for the demo
+        await ctx.db.patch(uid, {
+          streak: existing.streak || (5 + Math.floor(Math.random() * 10)),
+          role: existing.role || 'user',
+        });
       }
       userIds.push(uid);
     }

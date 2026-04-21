@@ -24,9 +24,9 @@ export default defineSchema({
     .index('by_streak', ['streak']),
 
   bookings: defineTable({
-    userId: v.string(),
+    userId: v.id('users'),
     userName: v.string(),
-    trainerId: v.string(),
+    trainerId: v.id('users'),
     trainerName: v.string(),
     workoutType: v.string(),
     date: v.string(),
@@ -38,7 +38,7 @@ export default defineSchema({
     .index('by_user', ['userId']),
 
   habits: defineTable({
-    userId: v.string(),
+    userId: v.id('users'),
     title: v.string(),
     frequency: v.union(
       v.literal('daily'),
@@ -52,7 +52,7 @@ export default defineSchema({
 
   habit_progress: defineTable({
     habitId: v.id('habits'),
-    userId: v.string(),
+    userId: v.id('users'),
     date: v.string(),
     isDone: v.boolean(),
   })
@@ -60,7 +60,7 @@ export default defineSchema({
     .index('by_user_and_date', ['userId', 'date']),
 
   moodLogs: defineTable({
-    userId: v.string(),
+    userId: v.id('users'),
     mood: v.number(),
     note: v.optional(v.string()),
     date: v.string(),

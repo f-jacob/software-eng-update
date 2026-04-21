@@ -3,7 +3,7 @@ import { v } from 'convex/values';
 import { query, mutation } from './_generated/server';
 
 export const getTrainerBookings = query({
-  args: { trainerId: v.string() },
+  args: { trainerId: v.id('users') },
   handler: async (ctx, args) => {
     return await ctx.db
       .query('bookings')
@@ -13,7 +13,7 @@ export const getTrainerBookings = query({
 });
 
 export const getUserBookings = query({
-  args: { userId: v.string() },
+  args: { userId: v.id('users') },
   handler: async (ctx, args) => {
     return await ctx.db
       .query('bookings')
@@ -35,9 +35,9 @@ export const updateStatus = mutation({
 
 export const createBooking = mutation({
   args: {
-    userId: v.string(),
+    userId: v.id('users'),
     userName: v.string(),
-    trainerId: v.string(),
+    trainerId: v.id('users'),
     trainerName: v.string(),
     workoutType: v.string(),
     date: v.string(),
