@@ -145,9 +145,9 @@ export const ensureDataIntegrity = mutation({
       if (userBookings.length < 10) {
         // Add past sessions with diverse types
         const types = ['Strength', 'Cardio', 'Bulking', 'Cutting'];
-        for (let i = 1; i <= 8; i++) {
+        for (let i = 1; i <= 10; i++) {
           const trainer = trainers[i % trainers.length];
-          const d = new Date(); d.setDate(d.getDate() - (i * 3)); // Spread them out
+          const d = new Date(); d.setDate(d.getDate() - (i * 3));
           
           await ctx.db.insert('bookings', {
             userId: u._id,
@@ -158,25 +158,27 @@ export const ensureDataIntegrity = mutation({
             date: d.toISOString().split('T')[0],
             time: `${9 + (i % 8)}:00`,
             duration: 60,
-            status: 'ACCEPTED',
+            status: i % 7 === 0 ? 'REJECTED' : 'ACCEPTED', // Add some rejected
             createdAt: d.getTime(),
           });
         }
         
-        // Add 1-2 upcoming sessions
-        const nextDate = new Date(); nextDate.setDate(nextDate.getDate() + 2);
-        await ctx.db.insert('bookings', {
-          userId: u._id,
-          userName: u.name,
-          trainerId: trainers[0]._id,
-          trainerName: trainers[0].name,
-          workoutType: 'Strength',
-          date: nextDate.toISOString().split('T')[0],
-          time: '14:30',
-          duration: 60,
-          status: 'PENDING',
-          createdAt: Date.now(),
-        });
+        // Add 2-3 pending sessions
+        for (let i = 1; i <= 2; i++) {
+          const nextDate = new Date(); nextDate.setDate(nextDate.getDate() + (i * 2));
+          await ctx.db.insert('bookings', {
+            userId: u._id,
+            userName: u.name,
+            trainerId: trainers[i % trainers.length]._id,
+            trainerName: trainers[i % trainers.length].name,
+            workoutType: types[i % types.length],
+            date: nextDate.toISOString().split('T')[0],
+            time: '14:30',
+            duration: 60,
+            status: 'PENDING',
+            createdAt: Date.now(),
+          });
+        }
       }
     }
 

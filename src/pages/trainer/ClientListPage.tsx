@@ -10,9 +10,10 @@ import { api } from '../../../convex/_generated/api';
 import { useAuthStore } from '../../store/authStore';
 
 export const ClientDetailDrawer: React.FC<{ clientId: string; onClose: () => void }> = ({ clientId, onClose }) => {
-  const clientBookings = useQuery(api.bookings.getUserBookings, { userId: clientId });
-  const user = useQuery(api.users.getTrainerClients, { trainerId: 'skip' }); 
-  const selectedClient = (user as any)?.find((c: any) => c.id === clientId);
+  const { currentUser } = useAuthStore();
+  const clientBookings = useQuery(api.bookings.getUserBookings, { userId: clientId as any });
+  const clients = useQuery(api.users.getTrainerClients, currentUser ? { trainerId: currentUser.id as any } : "skip");
+  const selectedClient = (clients as any)?.find((c: any) => c.id === clientId);
 
   if (!clientBookings || !selectedClient) return null;
 
