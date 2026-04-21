@@ -10,26 +10,29 @@ interface DashboardLayoutProps {
 }
 
 const pageVariants = {
-  initial: { opacity: 0, y: 20 },
+  initial: { opacity: 0, y: 10 },
   animate: { opacity: 1, y: 0 },
-  exit:    { opacity: 0, y: -10 },
+  exit:    { opacity: 0, y: -5 },
 };
 
 export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ title }) => {
   return (
-    <div className="flex h-screen bg-bg-base overflow-hidden">
+    <div className="flex h-screen bg-deep overflow-hidden bg-mesh">
       <Sidebar />
-      <div className="flex-1 flex flex-col min-w-0 ml-60 transition-all duration-250">
+      <div className="flex-1 flex flex-col min-w-0 md:ml-[260px] relative">
+        <div className="absolute inset-0 bg-mesh opacity-50 pointer-events-none" />
         <TopBar title={title} />
         <motion.main
           variants={pageVariants}
           initial="initial"
           animate="animate"
           exit="exit"
-          transition={{ duration: 0.3, ease: 'easeOut' }}
-          className="flex-1 overflow-y-auto p-6 bg-bg-base"
+          transition={{ duration: 0.4, ease: [0.23, 1, 0.32, 1] }}
+          className="flex-1 overflow-y-auto p-8 md:p-12 relative z-10 scrollbar-hide"
         >
-          <Outlet />
+          <div className="max-w-7xl mx-auto">
+            <Outlet />
+          </div>
         </motion.main>
       </div>
     </div>

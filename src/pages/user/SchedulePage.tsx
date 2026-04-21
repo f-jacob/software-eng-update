@@ -2,14 +2,18 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, isSameMonth, isSameDay } from 'date-fns';
-import { ChevronLeft, ChevronRight, Clock, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Clock, Loader2 } from 'lucide-react';
 import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
-import { useBookingStore } from '../../store/bookingStore';
+import { useQuery } from 'convex/react';
+import { api } from '../../../convex/_generated/api';
+import { useAuthStore } from '../../store/authStore';
 
 export const SchedulePage: React.FC = () => {
-  const { bookings } = useBookingStore();
+  const { currentUser } = useAuthStore();
+  const bookings = useQuery(api.bookings.getUserBookings, currentUser ? { userId: currentUser.id as any } : "skip");
+  
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
 
@@ -22,15 +26,23 @@ export const SchedulePage: React.FC = () => {
   let day = gridStart;
   while (day <= gridEnd) { days.push(day); day = addDays(day, 1); }
 
-  const sessionsForSelected = bookings.filter(b => b.date === format(selectedDate, 'yyyy-MM-dd'));
+  const sessionsForSelected = (bookings || []).filter(b => b.date === format(selectedDate, 'yyyy-MM-dd'));
 
   const getDot = (dateStr: string) => {
-    const ss = bookings.filter(b => b.date === dateStr);
+    const ss = (bookings || []).filter(b => b.date === dateStr);
     if (!ss.length) return null;
     if (ss.some(s => s.status === 'ACCEPTED')) return 'bg-accent';
-    if (ss.some(s => s.status === 'PENDING'))  return 'bg-pending';
+    if (ss.some(s => s.status === 'PENDING'))  return 'bg-amber-500'; // Changed color to match theme better
     return 'bg-text-light';
   };
+
+  if (!bookings) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="animate-spin text-accent" size={32} />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -65,7 +77,7 @@ export const SchedulePage: React.FC = () => {
               return (
                 <motion.button key={i} onClick={() => setSelectedDate(d)} whileHover={{scale:1.05}}
                   className={`relative flex flex-col items-center justify-center p-2 rounded-xl min-h-[52px] transition-all
-                    ${isSel ? 'bg-accent text-white' : ''}
+                    ${isSel ? 'bg-accent text-white shadow-lg' : ''}
                     ${isToday && !isSel ? 'border-2 border-accent text-accent' : ''}
                     ${!isSel && !isToday ? 'hover:bg-bg-section' : ''}
                     ${!inMonth ? 'opacity-30' : ''}`}>
@@ -77,29 +89,37 @@ export const SchedulePage: React.FC = () => {
           </div>
         </Card>
 
-        <Card hover={false}>
-          <p className="card-label mb-4">{format(selectedDate,'EEEE, MMM d')}</p>
+        <Card hover={false} className="flex flex-col">
+          <p className="card-label mb-4 uppercase tracking-widest">{format(selectedDate,'EEEE, MMM d')}</p>
           {sessionsForSelected.length === 0 ? (
-            <div className="text-center py-10">
-              <Clock size={32} className="text-text-light mx-auto mb-3"/>
-              <p className="text-text-secondary font-inter text-sm">No sessions on this day.</p>
-              <Button size="sm" className="mt-4" onClick={() => window.location.href='/user/booking'}>Book Now</Button>
+            <div className="text-center py-20 bg-bg-section/30 rounded-2xl border border-dashed border-border flex flex-col items-center justify-center">
+              <Clock size={32} className="text-text-light mb-3 opacity-50"/>
+              <p className="text-text-secondary font-inter text-sm mb-4">No sessions on this day.</p>
+              <Button size="sm" onClick={() => window.location.href='/user/booking'}>Book Now</Button>
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-4">
               {sessionsForSelected.map(s => (
-                <div key={s.id} className="border-l-4 border-accent bg-accent-light rounded-r-xl p-4">
-                  <div className="flex items-start justify-between mb-2">
-                    <p className="font-barlow font-bold text-base text-text-primary">{s.trainerName}</p>
-                    <Badge status={s.status}/>
-                  </div>
-                  <p className="text-xs text-text-secondary font-inter">{s.workoutType} · {s.time} · {s.duration}min</p>
-                  <div className="flex gap-2 mt-3">
-                    <button className="text-xs text-danger hover:underline font-inter font-medium flex items-center gap-1">
-                      <X size={12}/> Cancel
-                    </button>
-                    <button className="text-xs text-accent hover:underline font-inter font-medium">Reschedule</button>
-                  </div>
+                <div key={s._id} className="relative pl-4 overflow-hidden rounded-xl border border-border bg-bg-surface group">
+                   <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-accent" />
+                   <div className="p-4">
+                      <div className="flex items-start justify-between mb-2">
+                        <p className="font-barlow font-bold text-lg text-text-primary uppercase">{s.trainerName}</p>
+                        <Badge status={s.status}/>
+                      </div>
+                      <p className="text-xs text-text-secondary font-inter font-medium opacity-70">
+                        {s.workoutType} · {s.time} · {s.duration}min
+                      </p>
+                      
+                      <div className="flex gap-4 mt-6 pt-4 border-t border-border/50">
+                        <button className="text-[10px] font-bold text-text-light uppercase tracking-widest hover:text-danger transition-colors">
+                           Cancel
+                        </button>
+                        <button className="text-[10px] font-bold text-accent uppercase tracking-widest hover:underline">
+                           Reschedule
+                        </button>
+                      </div>
+                   </div>
                 </div>
               ))}
             </div>

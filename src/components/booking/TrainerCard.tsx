@@ -1,8 +1,7 @@
-// === FILE: src/components/booking/TrainerCard.tsx ===
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Star } from 'lucide-react';
-import type { Trainer } from '../../store/trainerStore';
+import type { Trainer } from '../../types';
 import { Avatar } from '../ui/Avatar';
 import { Button } from '../ui/Button';
 

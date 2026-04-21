@@ -10,6 +10,8 @@ export interface CurrentUser {
   role: Role;
   avatar?: string;
   streak?: number;
+  rating?: number;
+  specialty?: string;
 }
 
 interface AuthState {

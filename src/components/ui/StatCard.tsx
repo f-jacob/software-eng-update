@@ -35,9 +35,9 @@ export const StatCard: React.FC<StatCardProps> = ({ label, value, numeric, trend
   return (
     <Card animate delay={delay} className="relative overflow-hidden">
       {icon && <div className="absolute top-4 right-4 text-accent opacity-20 scale-150">{icon}</div>}
-      <p className="card-label mb-2">{label}</p>
+      <p className="text-label mb-2">{label}</p>
       <motion.p
-        className="font-barlow font-extrabold text-5xl text-text-primary leading-none"
+        className="font-bold text-4xl text-text-primary tracking-tight leading-none"
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: delay + 0.1, duration: 0.4 }}

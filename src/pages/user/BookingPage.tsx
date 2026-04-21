@@ -1,7 +1,7 @@
 // === FILE: src/pages/user/BookingPage.tsx ===
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle } from 'lucide-react';
+import { CheckCircle, Loader2 } from 'lucide-react';
 import { StepIndicator } from '../../components/ui/StepIndicator';
 import { TrainerCard } from '../../components/booking/TrainerCard';
 import { TimeSlotGrid } from '../../components/booking/TimeSlotGrid';
@@ -9,9 +9,8 @@ import { WeekCalendar } from '../../components/booking/WeekCalendar';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
-import { useBookingStore } from '../../store/bookingStore';
-import { useTrainerStore } from '../../store/trainerStore';
-import type { Trainer } from '../../store/trainerStore';
+import { useQuery, useMutation } from 'convex/react';
+import { api } from '../../../convex/_generated/api';
 import { useAuthStore } from '../../store/authStore';
 
 const STEPS = ['Choose Trainer', 'Set Details', 'Confirm'];
@@ -19,33 +18,63 @@ const TYPES = ['Strength','Cardio','Bulking','Cutting'];
 const FILTERS = ['All','Cardio','Strength','Bulking','Cutting'];
 
 export const BookingPage: React.FC = () => {
-  const { trainers } = useTrainerStore();
-  const { wizard, setWizardField, setWizardStep, addBooking, resetWizard } = useBookingStore();
   const { currentUser } = useAuthStore();
+  const trainers = useQuery(api.users.getTrainers);
+  const createBooking = useMutation(api.bookings.createBooking);
+
+  const [step, setStep] = useState(1);
   const [filter, setFilter] = useState('All');
+  const [selectedTrainerId, setSelectedTrainerId] = useState<string | null>(null);
+  const [workoutType, setWorkoutType] = useState('Strength');
+  const [selectedDate, setSelectedDate] = useState('');
+  const [selectedTime, setSelectedTime] = useState('');
+  
   const [confirmed, setConfirmed] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const filtered = filter === 'All' ? trainers : trainers.filter(t => t.specialty === filter);
-  const selectedTrainer = trainers.find(t => t.id === wizard.selectedTrainerId);
+  const filtered = filter === 'All' 
+    ? (trainers || []) 
+    : (trainers || []).filter(t => t.specialty === filter);
+    
+  const selectedTrainer = trainers?.find(t => t.id === selectedTrainerId);
 
-  const handleConfirm = () => {
-    if (!selectedTrainer) return;
-    addBooking({
-      id: `b-${Date.now()}`,
-      userId: currentUser?.id ?? 'u1',
-      trainerId: selectedTrainer.id,
-      trainerName: selectedTrainer.name,
-      workoutType: wizard.workoutType || selectedTrainer.specialty,
-      date: wizard.selectedDate,
-      time: wizard.selectedTime,
-      duration: 55,
-      status: 'PENDING',
-      createdAt: new Date().toISOString().split('T')[0],
-    });
-    setConfirmed(true);
+  const handleConfirm = async () => {
+    if (!selectedTrainer || !currentUser) return;
+    setIsSubmitting(true);
+    try {
+      await createBooking({
+        userId: currentUser.id as any,
+        userName: currentUser.name,
+        trainerId: selectedTrainer.id as any,
+        trainerName: selectedTrainer.name,
+        workoutType: workoutType,
+        date: selectedDate,
+        time: selectedTime,
+        duration: 60,
+      });
+      setConfirmed(true);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const handleReset = () => { resetWizard(); setConfirmed(false); };
+  const handleReset = () => {
+    setStep(1);
+    setSelectedTrainerId(null);
+    setSelectedDate('');
+    setSelectedTime('');
+    setConfirmed(false);
+  };
+
+  if (!trainers) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="animate-spin text-accent" size={32} />
+      </div>
+    );
+  }
 
   if (confirmed) {
     return (
@@ -55,7 +84,7 @@ export const BookingPage: React.FC = () => {
             <CheckCircle size={40} className="text-white"/>
           </div>
           <h2 className="font-barlow font-extrabold text-3xl text-text-primary uppercase mb-2">Booking Submitted!</h2>
-          <p className="text-text-secondary font-inter mb-4">Your session with <strong>{selectedTrainer?.name}</strong> on <strong>{wizard.selectedDate}</strong> at <strong>{wizard.selectedTime}</strong> is pending confirmation.</p>
+          <p className="text-text-secondary font-inter mb-4">Your session with <strong>{selectedTrainer?.name}</strong> on <strong>{selectedDate}</strong> at <strong>{selectedTime}</strong> is pending confirmation.</p>
           <Badge status="PENDING" className="mb-6"/>
           <div className="flex gap-3 justify-center">
             <Button variant="primary" onClick={handleReset}>Book Another</Button>
@@ -73,11 +102,11 @@ export const BookingPage: React.FC = () => {
         <p className="text-text-secondary font-inter text-sm">Follow the steps to book your trainer.</p>
       </div>
 
-      <StepIndicator steps={STEPS} current={wizard.step} />
+      <StepIndicator steps={STEPS} current={step} />
 
       <AnimatePresence mode="wait">
         {/* STEP 1 */}
-        {wizard.step === 1 && (
+        {step === 1 && (
           <motion.div key="step1" initial={{opacity:0,x:30}} animate={{opacity:1,x:0}} exit={{opacity:0,x:-30}}>
             <div className="flex flex-wrap gap-2 mb-6">
               {FILTERS.map(f => (
@@ -87,13 +116,16 @@ export const BookingPage: React.FC = () => {
             </div>
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
               {filtered.map(t => (
-                <TrainerCard key={t.id} trainer={t}
-                  selected={wizard.selectedTrainerId === t.id}
-                  onSelect={(tr: Trainer) => setWizardField('selectedTrainerId', tr.id)} />
+                <TrainerCard 
+                  key={t.id} 
+                  trainer={t as any}
+                  selected={selectedTrainerId === t.id}
+                  onSelect={(tr: any) => setSelectedTrainerId(tr.id)} 
+                />
               ))}
             </div>
             <div className="mt-8 flex justify-end">
-              <Button disabled={!wizard.selectedTrainerId} onClick={() => setWizardStep(2)}>
+              <Button disabled={!selectedTrainerId} onClick={() => setStep(2)}>
                 Continue →
               </Button>
             </div>
@@ -101,10 +133,9 @@ export const BookingPage: React.FC = () => {
         )}
 
         {/* STEP 2 */}
-        {wizard.step === 2 && selectedTrainer && (
+        {step === 2 && selectedTrainer && (
           <motion.div key="step2" initial={{opacity:0,x:30}} animate={{opacity:1,x:0}} exit={{opacity:0,x:-30}}
             className="grid lg:grid-cols-3 gap-6">
-            {/* Selected trainer summary */}
             <Card accent className="lg:col-span-1 h-fit">
               <p className="card-label mb-3">Selected Trainer</p>
               <div className="flex items-center gap-3 mb-4">
@@ -120,30 +151,29 @@ export const BookingPage: React.FC = () => {
               <p className="font-barlow font-extrabold text-2xl text-accent">${selectedTrainer.rate}<span className="text-sm font-inter font-normal text-text-light">/hr</span></p>
             </Card>
 
-            {/* Date + time */}
             <div className="lg:col-span-2 space-y-6">
               <Card hover={false}>
                 <p className="card-label mb-3">Workout Type</p>
                 <div className="flex flex-wrap gap-2 mb-6">
                   {TYPES.map(t => (
-                    <button key={t} onClick={() => setWizardField('workoutType', t)}
-                      className={wizard.workoutType===t ? 'pill-active' : 'pill-inactive'}>{t}</button>
+                    <button key={t} onClick={() => setWorkoutType(t)}
+                      className={workoutType===t ? 'pill-active' : 'pill-inactive'}>{t}</button>
                   ))}
                 </div>
                 <p className="card-label mb-3">Select Date</p>
-                <WeekCalendar selectedDate={wizard.selectedDate} onSelect={d => setWizardField('selectedDate', d)} />
+                <WeekCalendar selectedDate={selectedDate} onSelect={d => setSelectedDate(d)} />
               </Card>
-              {wizard.selectedDate && (
+              {selectedDate && (
                 <Card hover={false}>
                   <p className="card-label mb-4">Select Time</p>
-                  <TimeSlotGrid selectedTime={wizard.selectedTime} onSelect={t => setWizardField('selectedTime', t)} />
+                  <TimeSlotGrid selectedTime={selectedTime} onSelect={t => setSelectedTime(t)} />
                 </Card>
               )}
             </div>
 
             <div className="lg:col-span-3 flex justify-between">
-              <Button variant="ghost" onClick={() => setWizardStep(1)}>← Back</Button>
-              <Button disabled={!wizard.selectedDate || !wizard.selectedTime} onClick={() => setWizardStep(3)}>
+              <Button variant="ghost" onClick={() => setStep(1)}>← Back</Button>
+              <Button disabled={!selectedDate || !selectedTime} onClick={() => setStep(3)}>
                 Review Booking →
               </Button>
             </div>
@@ -151,7 +181,7 @@ export const BookingPage: React.FC = () => {
         )}
 
         {/* STEP 3 */}
-        {wizard.step === 3 && selectedTrainer && (
+        {step === 3 && selectedTrainer && (
           <motion.div key="step3" initial={{opacity:0,x:30}} animate={{opacity:1,x:0}} exit={{opacity:0,x:-30}}
             className="max-w-lg mx-auto space-y-6">
             <Card accent>
@@ -160,10 +190,10 @@ export const BookingPage: React.FC = () => {
                 {[
                   { l:'Trainer',      v: selectedTrainer.name    },
                   { l:'Specialty',    v: selectedTrainer.specialty},
-                  { l:'Workout Type', v: wizard.workoutType || selectedTrainer.specialty },
-                  { l:'Date',         v: wizard.selectedDate      },
-                  { l:'Time',         v: wizard.selectedTime      },
-                  { l:'Duration',     v: '55 minutes'             },
+                  { l:'Workout Type', v: workoutType },
+                  { l:'Date',         v: selectedDate      },
+                  { l:'Time',         v: selectedTime      },
+                  { l:'Duration',     v: '60 minutes'             },
                   { l:'Rate',         v: `$${selectedTrainer.rate}/hr` },
                 ].map(row => (
                   <div key={row.l} className="flex justify-between py-2 border-b border-border last:border-0">
@@ -174,8 +204,10 @@ export const BookingPage: React.FC = () => {
               </div>
             </Card>
             <div className="flex gap-3">
-              <Button variant="ghost" onClick={() => setWizardStep(2)} className="flex-1 justify-center">← Back</Button>
-              <Button onClick={handleConfirm} className="flex-1 justify-center" size="lg">Confirm Booking ✓</Button>
+              <Button variant="ghost" onClick={() => setStep(2)} className="flex-1 justify-center">← Back</Button>
+              <Button onClick={handleConfirm} disabled={isSubmitting} className="flex-1 justify-center" size="lg">
+                {isSubmitting ? 'Confirming...' : 'Confirm Booking ✓'}
+              </Button>
             </div>
           </motion.div>
         )}

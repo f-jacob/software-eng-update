@@ -1,8 +1,6 @@
-// === FILE: src/components/layout/TopBar.tsx ===
 import React, { useState } from 'react';
 import { Bell, Search } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
-import { useHabitStore } from '../../store/habitStore';
 import { motion } from 'framer-motion';
 
 interface TopBarProps {
@@ -11,17 +9,17 @@ interface TopBarProps {
 
 export const TopBar: React.FC<TopBarProps> = ({ title }) => {
   const { currentUser } = useAuthStore();
-  const { streak } = useHabitStore();
+  const streak = currentUser?.streak || 0;
   const [notifOpen, setNotifOpen] = useState(false);
 
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
 
   return (
-    <header className="h-16 bg-white border-b border-border flex items-center px-6 gap-4 sticky top-0 z-20">
+    <header className="h-16 bg-bg-base border-b border-border flex items-center px-6 gap-4 sticky top-0 z-20">
       <div className="flex-1">
         {title ? (
-          <h1 className="font-barlow font-extrabold text-2xl text-text-primary uppercase">{title}</h1>
+          <h1 className="font-bold text-xl text-text-primary tracking-tight">{title}</h1>
         ) : (
           <div className="flex items-center gap-3">
             <p className="font-inter font-medium text-text-primary">
@@ -62,10 +60,10 @@ export const TopBar: React.FC<TopBarProps> = ({ title }) => {
         {notifOpen && (
           <motion.div
             initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-            className="absolute right-0 mt-2 w-72 bg-white rounded-xl shadow-card-hover border border-border z-50 overflow-hidden"
+            className="absolute right-0 mt-2 w-72 bg-bg-surface rounded-xl shadow-card-hover border border-border z-50 overflow-hidden"
           >
             <div className="px-4 py-3 border-b border-border">
-              <p className="font-barlow font-bold text-base text-text-primary uppercase">Notifications</p>
+              <p className="font-bold text-base text-text-primary uppercase tracking-widest">Notifications</p>
             </div>
             {[
               { msg: 'Marcus Reid confirmed your session', time: '2h ago' },

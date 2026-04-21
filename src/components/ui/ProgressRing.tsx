@@ -26,11 +26,11 @@ export const ProgressRing: React.FC<ProgressRingProps> = ({
       <svg width={size} height={size} className="-rotate-90">
         <circle
           cx={size / 2} cy={size / 2} r={r}
-          fill="none" stroke="#F1F5F9" strokeWidth={strokeWidth}
+          fill="none" stroke="var(--border)" strokeWidth={strokeWidth}
         />
         <motion.circle
           cx={size / 2} cy={size / 2} r={r}
-          fill="none" stroke="#FF4D00" strokeWidth={strokeWidth}
+          fill="none" stroke="var(--accent)" strokeWidth={strokeWidth}
           strokeLinecap="round"
           strokeDasharray={circ}
           initial={{ strokeDashoffset: circ }}

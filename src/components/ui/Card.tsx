@@ -23,9 +23,9 @@ export const Card: React.FC<CardProps> = ({
   onClick,
 }) => {
   const base = clsx(
-    'bg-white rounded-xl border border-border shadow-card p-6 transition-all duration-200',
-    hover && 'hover:shadow-card-hover hover:border-accent',
-    accent && 'border-l-4 border-l-accent',
+    'glass-card group',
+    hover && 'hover:bg-white/5 hover:border-white/20 hover:-translate-y-1',
+    accent && 'border-t-2 border-t-accent',
     onClick && 'cursor-pointer',
     className
   );

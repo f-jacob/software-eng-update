@@ -1,154 +1,105 @@
 /* === FILE: src/index.css === */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --bg-base:         #F9FAFB;
-  --bg-surface:      #FFFFFF;
-  --bg-section:      #F1F5F9;
-  --accent:          #FF4D00;
-  --accent-hover:    #E03D00;
-  --accent-light:    #FFF0EB;
-  --accent-2:        #FFB800;
-  --text-primary:    #1A1A2E;
-  --text-secondary:  #64748B;
-  --text-light:      #94A3B8;
-  --border:          #E2E8F0;
-  --success:         #22C55E;
-  --danger:          #EF4444;
-  --pending:         #F59E0B;
-  --sidebar-bg:      #1A1A2E;
-  --sidebar-text:    #CBD5E1;
-  --sidebar-active:  #FF4D00;
+  /* Luxury Dark Glass Palette */
+  --bg-deep:         #030712; /* Midnight Black */
+  --bg-glass:        rgba(15, 23, 42, 0.65); /* Indigo Glass */
+  --bg-glass-heavy:  rgba(15, 23, 42, 0.85);
+  
+  --accent:          #6366F1; /* Vibrant Indigo */
+  --accent-glow:     rgba(99, 102, 241, 0.4);
+  --accent-muted:    rgba(99, 102, 241, 0.1);
+  
+  --text-main:       #F8FAFC; 
+  --text-soft:       #94A3B8;
+  --text-muted:      #64748B;
+  
+  --border-glass:    rgba(255, 255, 255, 0.08);
+  --border-active:   rgba(255, 255, 255, 0.15);
+  
+  --success:         #10B981;
+  --danger:          #F43F5E;
 }
 
 @layer base {
-  *, *::before, *::after { box-sizing: border-box; }
-
-  html {
-    font-family: 'Inter', sans-serif;
-    background-color: var(--bg-base);
-    color: var(--text-primary);
-    scroll-behavior: smooth;
+  * { 
+    box-sizing: border-box; 
+    border-color: var(--border-glass);
   }
 
-  body {
+  html, body {
     margin: 0;
     padding: 0;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    background-color: var(--bg-base);
-  }
-
-  h1, h2, h3, h4 {
-    font-family: 'Barlow Condensed', sans-serif;
-    font-weight: 800;
-    letter-spacing: -0.01em;
-  }
-
-  input, textarea, select {
+    background-color: var(--bg-deep);
+    color: var(--text-main);
     font-family: 'Inter', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    scroll-behavior: smooth;
+    overflow-x: hidden;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Outfit', sans-serif;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    color: var(--text-main);
   }
 }
 
 @layer components {
+  /* Glass Components */
+  .glass {
+    @apply backdrop-blur-2xl bg-[var(--bg-glass)] border border-[var(--border-glass)];
+  }
+
+  .glass-card {
+    @apply glass rounded-[2rem] p-8 shadow-2xl shadow-black/20
+           transition-all duration-300;
+  }
+
   .btn-primary {
-    @apply bg-accent text-white font-inter font-semibold px-6 py-3 rounded-lg
-           hover:bg-accent-hover active:scale-95 transition-all duration-150
-           inline-flex items-center gap-2 cursor-pointer;
+    @apply bg-accent text-white font-bold px-8 py-3 rounded-2xl
+           hover:brightness-110 active:scale-[0.97] transition-all duration-200
+           inline-flex items-center justify-center gap-2 cursor-pointer
+           shadow-lg shadow-accent/20 border border-white/10;
   }
 
-  .btn-ghost {
-    @apply border-2 border-accent text-accent font-inter font-semibold px-6 py-3 rounded-lg
-           hover:bg-accent-light active:scale-95 transition-all duration-150
-           inline-flex items-center gap-2 cursor-pointer;
+  .btn-glass {
+    @apply glass text-[var(--text-main)] font-bold px-8 py-3 rounded-2xl
+           hover:bg-white/5 active:scale-[0.97] transition-all
+           inline-flex items-center justify-center gap-2 cursor-pointer;
   }
 
-  .btn-danger {
-    @apply bg-danger text-white font-inter font-semibold px-6 py-3 rounded-lg
-           hover:bg-red-600 active:scale-95 transition-all duration-150
-           inline-flex items-center gap-2 cursor-pointer;
+  .input-glass {
+    @apply w-full bg-black/20 border border-[var(--border-glass)] rounded-xl px-5 py-3.5
+           text-[var(--text-main)] placeholder-[var(--text-muted)]
+           focus:outline-none focus:border-accent/50 focus:bg-black/40
+           transition-all duration-200;
   }
 
-  .card {
-    @apply bg-white rounded-xl border border-border shadow-card
-           transition-all duration-200
-           hover:shadow-card-hover hover:border-accent;
-  }
-
-  .card-accent {
-    @apply card border-l-4 border-l-accent;
-  }
-
-  .stat-number {
-    @apply font-barlow font-extrabold text-accent;
-    font-size: clamp(2.5rem, 5vw, 4.5rem);
-    line-height: 1;
-  }
-
-  .page-title {
-    @apply font-barlow font-extrabold uppercase tracking-tight text-text-primary;
-    font-size: clamp(2.5rem, 5vw, 4rem);
-    line-height: 1.05;
-  }
-
-  .section-title {
-    @apply font-barlow font-bold uppercase text-text-primary;
-    font-size: clamp(1.5rem, 3vw, 2rem);
-  }
-
-  .card-label {
-    @apply font-inter font-medium text-text-secondary uppercase tracking-widest;
-    font-size: 11px;
-  }
-
-  .input-base {
-    @apply w-full bg-white border border-border rounded-lg px-4 py-3
-           font-inter text-text-primary placeholder-text-light
-           focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent
-           transition-all duration-150;
-  }
-
-  .pill-active {
-    @apply bg-accent text-white font-inter font-semibold text-sm px-4 py-1.5 rounded-full cursor-pointer;
-  }
-
-  .pill-inactive {
-    @apply bg-bg-section text-text-secondary font-inter font-medium text-sm px-4 py-1.5 rounded-full cursor-pointer
-           hover:bg-accent-light hover:text-accent transition-all duration-150;
-  }
-
-  .sidebar-item {
-    @apply flex items-center gap-3 px-4 py-3 rounded-lg text-sidebar-text
-           font-inter font-medium text-sm cursor-pointer
-           transition-all duration-150 hover:bg-white/10 hover:text-white;
-  }
-
-  .sidebar-item-active {
-    @apply sidebar-item bg-accent text-white font-semibold;
-  }
-
-  .section-divider {
-    @apply border-l-4 border-accent pl-4 mb-2;
-  }
+  /* Typography Styles */
+  .heading-xl { @apply text-5xl md:text-7xl font-extrabold leading-[1.05] tracking-tighter; }
+  .heading-lg { @apply text-3xl md:text-4xl font-bold leading-tight tracking-tight; }
+  .text-label { @apply text-[10px] font-bold uppercase tracking-[0.25em] text-[var(--text-soft)]; }
 }
 
 @layer utilities {
-  .text-gradient-orange {
-    background: linear-gradient(135deg, #FF4D00, #FFB800);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
-
-  .clip-diagonal {
-    clip-path: polygon(10% 0%, 100% 0%, 100% 100%, 0% 100%);
-  }
-
   .scrollbar-hide {
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
   .scrollbar-hide::-webkit-scrollbar { display: none; }
+
+  .bg-mesh {
+    background: radial-gradient(circle at 50% -20%, #1e1b4b 0%, #030712 100%);
+  }
+
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-white via-white to-white/40;
+  }
 }

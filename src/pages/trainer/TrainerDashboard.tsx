@@ -1,97 +1,114 @@
-// === FILE: src/pages/trainer/TrainerDashboard.tsx ===
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Check, X, Clock, Users, DollarSign, Star, ChevronRight } from 'lucide-react';
 import { StatCard } from '../../components/ui/StatCard';
 import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
-import { Avatar } from '../../components/ui/Avatar';
-import { useBookingStore } from '../../store/bookingStore';
+import { useQuery, useMutation } from 'convex/react';
+import { api } from '../../../convex/_generated/api';
+import { useAuthStore } from '../../store/authStore';
 
 export const TrainerDashboard: React.FC = () => {
-  const { pendingRequests, updateBookingStatus } = useBookingStore();
+  const { currentUser } = useAuthStore();
+  const bookings = useQuery(api.bookings.getTrainerBookings, currentUser ? { trainerId: currentUser.id as any } : "skip");
+  const trainerStats = useQuery(api.analytics.getTrainerStats, currentUser ? { trainerId: currentUser.id as any } : "skip");
+  const updateStatus = useMutation(api.bookings.updateStatus);
 
-  const handleStatusUpdate = (id: string, status: 'ACCEPTED' | 'REJECTED') => {
-    updateBookingStatus(id, status);
+  const pendingRequests = bookings?.filter((b: any) => b.status === 'PENDING') || [];
+  const schedule = bookings?.filter((b: any) => b.status === 'ACCEPTED') || [];
+
+  const handleStatusUpdate = async (id: any, status: 'ACCEPTED' | 'REJECTED') => {
+    try {
+      await updateStatus({ id, status });
+    } catch (err) {
+      console.error(err);
+    }
   };
+
+  if (!trainerStats || !bookings) {
+    return <div className="p-20 text-center text-text-light">Synchronizing performance data...</div>;
+  }
 
   return (
     <div className="space-y-8">
       {/* Stats Row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard label="Clients Today" value="8" numeric={8} icon={<Users />} />
-        <StatCard label="Pending Requests" value={pendingRequests.length} numeric={pendingRequests.length} icon={<Clock />} />
-        <StatCard label="Weekly Revenue" value="$2,450" numeric={2450} icon={<DollarSign />} trend={12} />
-        <StatCard label="Avg Rating" value="4.9" numeric={4.9} icon={<Star />} />
+        <StatCard label="Live Clients" value={trainerStats.liveClients} numeric={trainerStats.liveClients} icon={<Users />} delay={0} />
+        <StatCard label="Pending Requests" value={trainerStats.pendingRequests} numeric={trainerStats.pendingRequests} icon={<Clock />} delay={0.07} />
+        <StatCard label="Weekly Revenue" value={`$${trainerStats.revenue.toLocaleString()}`} numeric={trainerStats.revenue} icon={<DollarSign />} trend={trainerStats.trend} delay={0.14} />
+        <StatCard label="Avg Rating" value={trainerStats.rating.toString()} numeric={trainerStats.rating} icon={<Star />} delay={0.21} />
       </div>
 
       <div className="grid lg:grid-cols-3 gap-6">
         {/* Today's Timeline */}
-        <Card className="lg:col-span-2 p-6" hover={false}>
-          <div className="section-divider mb-6">
-            <h2 className="section-title text-xl">Today's Schedule</h2>
+        <Card className="lg:col-span-2 p-8" hover={false}>
+          <div className="flex items-center gap-2 mb-8">
+            <div className="w-1 h-6 bg-accent rounded-full" />
+            <h2 className="font-bold text-lg uppercase tracking-tight">Confirmed Schedule</h2>
           </div>
-          <div className="relative pl-8 space-y-8 before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-0.5 before:bg-border">
-            {[
-              { time: '08:00', client: 'Sofia Martinez', type: 'Cutting', status: 'Completed' },
-              { time: '10:00', client: 'Andi Pratama', type: 'Strength', status: 'Current' },
-              { time: '14:00', client: 'Jordan Lee', type: 'Cardio', status: 'Upcoming' },
-              { time: '17:00', client: 'Tyler Ramos', type: 'Bulking', status: 'Upcoming' },
-            ].map((session, i) => (
-              <div key={i} className="relative">
-                <div className={`absolute -left-[25px] top-1.5 w-4 h-4 rounded-full border-4 border-white shadow-sm ${session.status === 'Current' ? 'bg-accent' : 'bg-border'}`} />
-                <div className="flex items-center justify-between">
-                   <div>
-                      <p className="text-xs font-inter font-bold text-accent uppercase tracking-wider">{session.time}</p>
-                      <h3 className="font-barlow font-bold text-lg text-text-primary uppercase">{session.client}</h3>
-                      <p className="text-sm text-text-secondary">{session.type}</p>
-                   </div>
-                   {session.status === 'Current' && (
-                     <Badge status="ACCEPTED" className="animate-pulse" />
-                   )}
+          <div className="relative pl-8 space-y-8 border-l border-border ml-2">
+            {schedule.length === 0 ? (
+              <p className="text-text-light text-sm italic py-4">No confirmed sessions yet.</p>
+            ) : (
+              schedule.map((session: any, i: number) => (
+                <div key={session._id} className="relative">
+                  <div className={`absolute -left-[37px] top-1.5 w-4 h-4 rounded-full border-[3px] border-bg-surface ${i === 0 ? 'bg-accent' : 'bg-bg-section'}`} />
+                  <div className="flex items-center justify-between">
+                     <div>
+                        <p className="text-[10px] font-bold text-accent uppercase tracking-widest mb-1">{session.time} · {session.date}</p>
+                        <h3 className="font-bold text-lg text-text-primary tracking-tight">{session.workoutType} Session</h3>
+                        <p className="text-sm text-text-secondary">UID: {session.userId.slice(0, 8)}...</p>
+                     </div>
+                     {i === 0 && (
+                       <Badge status="ACCEPTED" className="animate-pulse" />
+                     )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </Card>
 
         {/* Pending Requests */}
-        <Card className="p-6 overflow-hidden flex flex-col" hover={false}>
-          <div className="section-divider mb-6">
-            <h2 className="section-title text-xl">Pending ({pendingRequests.length})</h2>
+        <Card className="p-8 overflow-hidden flex flex-col" hover={false}>
+          <div className="flex items-center gap-2 mb-8">
+            <div className="w-1 h-6 bg-accent rounded-full" />
+            <h2 className="font-bold text-lg uppercase tracking-tight">Incoming ({pendingRequests.length})</h2>
           </div>
-          <div className="space-y-4 flex-1">
-            <AnimatePresence>
+          <div className="space-y-4 flex-1 overflow-y-auto pr-2 scrollbar-hide">
+            <AnimatePresence mode="popLayout">
               {pendingRequests.length === 0 ? (
-                <div className="text-center py-12 text-text-light font-inter text-sm">
+                <div className="text-center py-12 text-text-light text-sm">
                   No pending requests.
                 </div>
               ) : (
-                pendingRequests.map((request) => (
+                pendingRequests.map((request: any) => (
                   <motion.div
-                    key={request.id}
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -100 }}
-                    className="p-4 bg-bg-section rounded-xl border border-border group"
+                    key={request._id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    className="p-5 bg-bg-base rounded-xl border border-border group"
                   >
-                    <div className="flex items-center gap-3 mb-4">
-                      <Avatar initials={request.trainerName.slice(0, 1) + request.userId.slice(-1)} size="sm" variant="navy" />
-                      <div className="flex-1 overflow-hidden">
-                        <p className="font-inter font-bold text-sm text-text-primary truncate">Client ID: {request.userId}</p>
-                        <p className="text-xs text-text-secondary">{request.workoutType} · {request.time}</p>
+                    <div className="flex items-center gap-4 mb-4">
+                      <div className="w-10 h-10 rounded-lg bg-bg-surface border border-border flex items-center justify-center text-accent text-xs font-bold">
+                        RQ
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-bold text-sm text-text-primary truncate">{request.workoutType}</p>
+                        <p className="text-xs text-text-secondary">{request.date} @ {request.time}</p>
                       </div>
                     </div>
                     <div className="flex gap-2">
                       <button 
-                        onClick={() => handleStatusUpdate(request.id, 'ACCEPTED')}
-                        className="flex-1 bg-success text-white py-2 rounded-lg text-xs font-bold uppercase tracking-wider hover:opacity-90 transition-all flex items-center justify-center gap-1"
+                        onClick={() => handleStatusUpdate(request._id, 'ACCEPTED')}
+                        className="flex-1 bg-accent/10 border border-accent/20 text-accent py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest hover:bg-accent/20 transition-all flex items-center justify-center gap-2"
                       >
                         <Check size={14} /> Accept
                       </button>
                       <button 
-                        onClick={() => handleStatusUpdate(request.id, 'REJECTED')}
-                        className="flex-1 bg-danger text-white py-2 rounded-lg text-xs font-bold uppercase tracking-wider hover:opacity-90 transition-all flex items-center justify-center gap-1"
+                        onClick={() => handleStatusUpdate(request._id, 'REJECTED')}
+                        className="flex-1 bg-danger/10 border border-danger/20 text-danger py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest hover:bg-danger/20 transition-all flex items-center justify-center gap-2"
                       >
                         <X size={14} /> Reject
                       </button>
@@ -101,11 +118,12 @@ export const TrainerDashboard: React.FC = () => {
               )}
             </AnimatePresence>
           </div>
-          <button className="text-accent text-sm font-bold uppercase tracking-wider mt-6 hover:underline flex items-center gap-1">
-            View All Requests <ChevronRight size={16} />
+          <button className="text-accent text-[11px] font-bold uppercase tracking-widest mt-8 hover:underline flex items-center gap-2">
+            View All Requests <ChevronRight size={14} />
           </button>
         </Card>
       </div>
     </div>
   );
 };
+

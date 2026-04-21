@@ -10,9 +10,9 @@ interface BadgeProps {
 }
 
 const config: Record<string, { bg: string; text: string; dot: string }> = {
-  PENDING:  { bg: 'bg-amber-50',  text: 'text-pending', dot: 'bg-pending'  },
-  ACCEPTED: { bg: 'bg-green-50',  text: 'text-success', dot: 'bg-success'  },
-  REJECTED: { bg: 'bg-red-50',    text: 'text-danger',  dot: 'bg-danger'   },
+  PENDING:  { bg: 'bg-pending/10',  text: 'text-pending', dot: 'bg-pending'  },
+  ACCEPTED: { bg: 'bg-success/10',  text: 'text-success', dot: 'bg-success'  },
+  REJECTED: { bg: 'bg-danger/10',    text: 'text-danger',  dot: 'bg-danger'   },
 };
 
 export const Badge: React.FC<BadgeProps> = ({ status, className }) => {

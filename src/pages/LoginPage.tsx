@@ -1,137 +1,191 @@
 // === FILE: src/pages/LoginPage.tsx ===
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Zap, Eye, EyeOff, ArrowRight } from 'lucide-react';
-import { Button } from '../components/ui/Button';
+import { Zap, User, Lock, ArrowRight, Shield, Globe } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
-import type { Role } from '../store/authStore';
+import { useQuery, useMutation } from 'convex/react';
+import { api } from '../../convex/_generated/api';
 
-type RoleTab = { key: Role; label: string; email: string; redirect: string };
-const ROLES: RoleTab[] = [
-  { key:'user',    label:'User',    email:'user@fithabit.com',    redirect:'/user/dashboard'    },
-  { key:'trainer', label:'Trainer', email:'trainer@fithabit.com', redirect:'/trainer/dashboard' },
-  { key:'admin',   label:'Admin',   email:'admin@fithabit.com',   redirect:'/admin/dashboard'   },
+const QUOTES = [
+  { text: "Consistency is more important than perfection in fitness.", author: "Marcus Reid, Head Coach" },
+  { text: "Your health is an investment, not an expense.", author: "Lena Fischer, Wellness Lead" },
 ];
-const DEMO_USERS = {
-  user:    { id:'u1', name:'Andi Pratama', email:'user@fithabit.com',    role:'user'    as Role, streak:7 },
-  trainer: { id:'t1', name:'Marcus Reid',  email:'trainer@fithabit.com', role:'trainer' as Role, streak:0 },
-  admin:   { id:'a1', name:'Admin Boss',   email:'admin@fithabit.com',   role:'admin'   as Role, streak:0 },
-};
-const QUOTES: Record<Role,{text:string;author:string}> = {
-  user:    { text:'"Every champion was once a contender who refused to give up."', author:'— Rocky Balboa' },
-  trainer: { text:'"A great coach believes in you before you believe in yourself."', author:'— Unknown' },
-  admin:   { text:'"Data is the new oil. Analytics is the refinery."', author:'— Unknown' },
-};
 
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
-  const { login } = useAuthStore();
-  const [activeRole, setActiveRole] = useState<Role>('user');
-  const [email, setEmail]       = useState('user@fithabit.com');
-  const [password, setPassword] = useState('demo1234');
-  const [showPw, setShowPw]     = useState(false);
-  const [loading, setLoading]   = useState(false);
-  const [error, setError]       = useState('');
+  const { isAuthenticated, role, login: setAuth } = useAuthStore();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [error, setError] = useState('');
+  const [q, setQ] = useState(QUOTES[0]);
 
-  const handleRoleSwitch = (role: Role) => {
-    setActiveRole(role);
-    setEmail(ROLES.find(r => r.key === role)!.email);
-    setError('');
-  };
+  const loginMutation = useMutation(api.users.login);
+  const portalData = useQuery(api.analytics.getPublicPortalData);
+
+  useEffect(() => {
+    setQ(QUOTES[Math.floor(Math.random() * QUOTES.length)]);
+  }, []);
+
+  // Auto-redirect if already logged in
+  useEffect(() => {
+    if (isAuthenticated && role) {
+      navigate(`/${role}/dashboard`);
+    }
+  }, [isAuthenticated, role, navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault(); setError(''); setLoading(true);
-    await new Promise(r => setTimeout(r, 700));
-    const demo = DEMO_USERS[activeRole];
-    if (email === demo.email && password === 'demo1234') {
-      login(demo);
-      navigate(ROLES.find(r => r.key === activeRole)!.redirect);
-    } else {
-      setError('Use password: demo1234');
+    e.preventDefault();
+    if (isLoggingIn) return;
+    
+    setIsLoggingIn(true);
+    setError('');
+
+    try {
+      const user = await loginMutation({ 
+        nameOrEmail: email, 
+        password: password 
+      });
+
+      if (user) {
+        setAuth({
+          id: user.id as any,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+        });
+        navigate(`/${user.role}/dashboard`);
+      } else {
+        setError('Invalid credentials. Check name/password.');
+      }
+    } catch (err) {
+      console.error(err);
+      setError('An error occurred during sign in.');
+    } finally {
+      setIsLoggingIn(false);
     }
-    setLoading(false);
   };
 
-  const q = QUOTES[activeRole];
-
   return (
-    <div className="min-h-screen flex bg-white">
-      {/* LEFT – Form */}
-      <motion.div initial={{opacity:0,x:-30}} animate={{opacity:1,x:0}} transition={{duration:0.4}}
-        className="w-full lg:w-1/2 flex flex-col justify-center px-8 md:px-16 py-12">
-        <div className="flex items-center gap-2 mb-10">
-          <div className="w-9 h-9 bg-accent rounded-lg flex items-center justify-center">
-            <Zap size={18} className="text-white" fill="white" />
-          </div>
-          <span className="font-barlow font-extrabold text-xl uppercase text-text-primary">FitHabit</span>
-        </div>
-        <h1 className="font-barlow font-extrabold text-text-primary uppercase mb-2" style={{fontSize:'2.5rem',lineHeight:1.05}}>Welcome Back</h1>
-        <p className="text-text-secondary font-inter mb-8 text-sm">Sign in and keep your streak alive.</p>
-
-        {/* Role tabs */}
-        <div className="flex bg-bg-section rounded-xl p-1 mb-8">
-          {ROLES.map(r => (
-            <button key={r.key} onClick={() => handleRoleSwitch(r.key)}
-              className={`flex-1 py-2.5 text-sm font-inter font-semibold rounded-lg transition-all duration-200 ${
-                activeRole===r.key ? 'bg-white text-accent shadow-card border border-border' : 'text-text-secondary hover:text-text-primary'
-              }`}>
-              {r.label}
-            </button>
-          ))}
-        </div>
-
-        <form onSubmit={handleLogin} className="space-y-5">
-          <div>
-            <label className="card-label mb-2 block">Email Address</label>
-            <input type="email" value={email} onChange={e=>setEmail(e.target.value)} className="input-base" required />
-          </div>
-          <div>
-            <div className="flex justify-between items-center mb-2">
-              <label className="card-label">Password</label>
-              <a href="#" className="text-xs text-accent font-inter hover:underline">Forgot password?</a>
+    <div className="min-h-screen bg-bg-base font-inter flex flex-col md:flex-row overflow-hidden selection:bg-accent/30">
+      {/* ── LEFT SIDE: FORM ── */}
+      <motion.div 
+        initial={{ opacity: 0, x: -20 }}
+        animate={{ opacity: 1, x: 0 }}
+        className="flex-1 flex flex-col justify-center px-8 md:px-24 py-12 relative z-10"
+      >
+        <div className="max-w-md w-full mx-auto">
+          <div 
+            onClick={() => navigate('/')}
+            className="flex items-center gap-3 mb-12 cursor-pointer group w-fit"
+          >
+            <div className="w-10 h-10 bg-accent rounded-xl flex items-center justify-center shadow-lg shadow-accent/20 group-hover:scale-110 transition-all">
+              <Zap size={20} className="text-white" fill="white" />
             </div>
-            <div className="relative">
-              <input type={showPw?'text':'password'} value={password}
-                onChange={e=>setPassword(e.target.value)} className="input-base pr-12" required />
-              <button type="button" onClick={()=>setShowPw(s=>!s)}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-text-light hover:text-text-secondary">
-                {showPw ? <EyeOff size={18}/> : <Eye size={18}/>}
+            <span className="font-bold text-xl tracking-tight uppercase font-barlow italic text-white group-hover:text-accent transition-colors">FitHabit <span className="text-accent">Trainer</span></span>
+          </div>
+
+          <div className="mb-10 text-center md:text-left">
+            <h1 className="text-4xl font-black italic uppercase font-barlow tracking-tight text-white mb-2">Access Pulse</h1>
+            <p className="text-text-light opacity-60 text-sm">Enter the athletic infrastructure zone.</p>
+          </div>
+
+          {error && (
+            <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-500 text-xs font-bold uppercase tracking-widest text-center">
+              {error}
+            </div>
+          )}
+
+          <form onSubmit={handleLogin} className="space-y-6">
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-text-light uppercase tracking-widest ml-1">Identity UID / Email</label>
+                <div className="relative group">
+                  <User size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-text-light group-focus-within:text-accent transition-colors" />
+                  <input 
+                    type="text" 
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full bg-bg-surface border border-white/5 rounded-xl py-4 pl-12 pr-4 text-sm text-white focus:border-accent/40 outline-none transition-all"
+                    placeholder="Enter Name (e.g. Jechris)"
+                    required
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <div className="flex justify-between px-1">
+                  <label className="text-[10px] font-bold text-text-light uppercase tracking-widest">Secret Protocol</label>
+                  <button type="button" className="text-[10px] font-bold text-accent uppercase tracking-widest hover:underline">Forgot?</button>
+                </div>
+                <div className="relative group">
+                  <Lock size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-text-light group-focus-within:text-accent transition-colors" />
+                  <input 
+                    type="password" 
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="w-full bg-bg-surface border border-white/5 rounded-xl py-4 pl-12 pr-4 text-sm text-white focus:border-accent/40 outline-none transition-all"
+                    placeholder="Enter Password"
+                    required
+                  />
+                </div>
+              </div>
+            </div>
+
+            <button 
+              type="submit"
+              disabled={isLoggingIn}
+              className="w-full bg-accent text-white py-4 rounded-xl text-xs font-bold uppercase tracking-[0.2em] shadow-xl shadow-accent/30 hover:brightness-110 active:scale-[0.98] transition-all flex items-center justify-center gap-2 group disabled:opacity-50"
+            >
+              {isLoggingIn ? 'Authenticating...' : 'Sign In to Pulse'} <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+            </button>
+
+
+            <div className="relative h-px bg-white/5 my-10">
+              <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-bg-base px-4 text-[10px] font-bold text-text-light uppercase tracking-widest">Or connect via</span>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <button type="button" className="flex items-center justify-center gap-3 bg-bg-surface border border-white/5 py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest text-text-light hover:bg-white/5 transition-all">
+                <Globe size={16} /> Google
+              </button>
+              <button type="button" className="flex items-center justify-center gap-3 bg-bg-surface border border-white/5 py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest text-text-light hover:bg-white/5 transition-all">
+                <Shield size={16} /> Identity
               </button>
             </div>
-          </div>
-          {error && <p className="text-sm text-danger bg-red-50 border border-red-200 rounded-lg px-4 py-2">{error}</p>}
-          <Button type="submit" size="lg" className="w-full justify-center" loading={loading}>
-            Sign In <ArrowRight size={18}/>
-          </Button>
-        </form>
+          </form>
 
-        <div className="mt-6 p-4 bg-accent-light rounded-xl border border-orange-100">
-          <p className="text-xs font-inter text-accent font-semibold uppercase tracking-wider mb-1">Demo Credentials</p>
-          <p className="text-xs font-inter text-text-secondary">Email: <span className="font-medium text-text-primary">{email}</span></p>
-          <p className="text-xs font-inter text-text-secondary">Password: <span className="font-medium text-text-primary">demo1234</span></p>
+          <p className="mt-12 text-center text-[10px] font-bold text-text-light uppercase tracking-widest opacity-40">
+            System Protected by FitHabit Security Engine
+          </p>
         </div>
-        <p className="mt-6 text-sm text-text-secondary text-center">
-          No account? <a href="#" className="text-accent font-semibold hover:underline">Create one free</a>
-        </p>
       </motion.div>
 
-      {/* RIGHT – Orange panel */}
-      <motion.div key={activeRole} initial={{opacity:0}} animate={{opacity:1}} transition={{duration:0.4}}
-        className="hidden lg:flex w-1/2 bg-accent flex-col items-center justify-center px-16 text-white relative overflow-hidden">
-        <div className="absolute inset-0 bg-hero-grain opacity-10"/>
-        <div className="absolute bottom-0 right-0 font-barlow font-extrabold text-white/10 uppercase select-none" style={{fontSize:'12rem',lineHeight:1}}>FIT</div>
+      {/* ── RIGHT SIDE: QUOTE & STATS ── */}
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="hidden md:flex flex-1 bg-accent relative flex-col items-center justify-center p-12 text-white"
+      >
+        <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent pointer-events-none" />
         <div className="relative z-10 max-w-sm text-center">
-          <div className="w-20 h-20 bg-white/20 rounded-2xl flex items-center justify-center mx-auto mb-8">
-            <Zap size={40} className="text-white" fill="white"/>
+          <div className="w-20 h-20 bg-white/20 rounded-3xl flex items-center justify-center mx-auto mb-10 shadow-lg">
+            <Zap size={36} className="text-white" fill="white"/>
           </div>
-          <blockquote className="font-barlow font-bold text-3xl uppercase leading-tight mb-4">{q.text}</blockquote>
-          <p className="text-orange-200 font-inter text-sm">{q.author}</p>
-          <div className="mt-12 grid grid-cols-3 gap-6 text-center">
-            {[{v:'180+',l:'Trainers'},{v:'2.4K',l:'Users'},{v:'98%',l:'Satisfaction'}].map(s=>(
+          <blockquote className="font-barlow font-black text-4xl uppercase leading-tight italic tracking-tight mb-6">
+            "{q.text}"
+          </blockquote>
+          <p className="text-white/70 font-inter text-xs font-bold uppercase tracking-widest">— {q.author}</p>
+          
+          <div className="mt-20 grid grid-cols-3 gap-8 text-center border-t border-white/10 pt-12">
+            {[
+              {v: portalData?.trainerCount || '180+', l:'Trainers'},
+              {v: portalData?.athleteCount || '2.4K', l:'Users'},
+              {v: portalData?.retention || '98%', l:'Success'}
+            ].map(s=>(
               <div key={s.l}>
-                <p className="font-barlow font-extrabold text-3xl">{s.v}</p>
-                <p className="text-orange-200 text-xs font-inter mt-1">{s.l}</p>
+                <p className="font-barlow font-black text-3xl italic">{s.v}</p>
+                <p className="text-white/60 text-[10px] font-bold uppercase tracking-widest mt-1">{s.l}</p>
               </div>
             ))}
           </div>
